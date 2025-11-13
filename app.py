@@ -102,6 +102,26 @@ except Exception as e:
 # Display predictions
 st.write("### Predicted Probabilities (Top 10 Trades)")
 st.dataframe(data[["counterparty", "notional_value", "Fail_Probability"]].head(10))
+# --------------------------------------------------
+# 🧩 Identify Probable Failure Reasons
+# --------------------------------------------------
+def identify_fail_reason(row):
+    reasons = []
+    if row.get("previous_settlement_fails", 0) > 0:
+        reasons.append("Counterparty has prior settlement fails")
+    if row.get("notional_value", 0) > 5000000:
+        reasons.append("High notional trade – possible funding mismatch")
+    if row.get("time_to_settle_days", 0) < 2:
+        reasons.append("Short settlement window – timing risk")
+    if "FOP" in str(row.get("settlement_method", "")):
+        reasons.append("Free of Payment method – missing funds risk")
+    if row.get("region_EMEA", 0) == 1:
+        reasons.append("Cross-border trade – regional instruction risk")
+    return ", ".join(reasons) if reasons else "No apparent issue"
+
+data["Probable_Reason"] = data.apply(identify_fail_reason, axis=1)
+st.write("### Predicted Probabilities with Probable Failure Reasons")
+st.dataframe(data[["counterparty", "notional_value", "Fail_Probability", "Probable_Reason"]].head(10))
 
 # --------------------------------------------------
 # Visualization – Counterparty Risk
@@ -131,4 +151,21 @@ else:
 
 st.markdown("---")
 st.caption("Developed as part of an MBA FinTech project – Settlement Break Prediction & Root Cause Analysis.")
+
+# --------------------------------------------------
+# 🏦 Operational Recommendations
+# --------------------------------------------------
+st.write("### 🏦 Suggested Actions for Operations Team")
+
+if high_risk.empty:
+    st.success("All trades appear healthy. Continue routine monitoring.")
+else:
+    st.warning("High-risk trades detected. Recommended actions:")
+    st.markdown("""
+    - **Validate Counterparty Instructions:** Verify standing settlement instructions (SSI) for flagged trades.  
+    - **Confirm Funding Availability:** Ensure funds are pre-positioned for high notional or short-window trades.  
+    - **Escalate Counterparty Discrepancies:** Communicate early with counterparties showing repeated settlement fails.  
+    - **Prioritize Manual Review:** Assign an operations analyst to manually verify all trades with fail probability > 0.7.  
+    - **Monitor Cross-Border Settlements:** For EMEA or APAC regions, confirm time zone cut-offs and clearing timelines.
+    """)
 
