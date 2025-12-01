@@ -19,7 +19,7 @@ def ensure_all_models_exists():
         st.info("Downloading model file from Google Drive... (first run only)")
         # 🔴 IMPORTANT: Replace this with YOUR FILE ID from Google Drive
         # Link format: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
-        file_id = "PASTE_YOUR_FILE_ID_HERE"
+        file_id = "1mrGTVbdMhhPpX1iWifRLMo_KkEKzmaBT"
         url = f"https://drive.google.com/uc?id={file_id}"
         gdown.download(url, model_path, quiet=False)
         st.success("Model downloaded successfully.")
@@ -450,3 +450,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
