@@ -1,12 +1,33 @@
 import streamlit as st
+import os
+import gdown
 import pandas as pd
 import numpy as np
 import joblib
-from io import BytesIO
-
 
 # ============================
-# LOAD ARTIFACTS
+# 1. DOWNLOAD MODEL FROM GOOGLE DRIVE (IF NEEDED)
+# ============================
+
+def ensure_all_models_exists():
+    """
+    Ensures all_models.joblib is present locally.
+    If not, downloads it from Google Drive using gdown.
+    """
+    model_path = "all_models.joblib"
+    if not os.path.exists(model_path):
+        st.info("Downloading model file from Google Drive... (first run only)")
+        # 🔴 IMPORTANT: Replace this with YOUR FILE ID from Google Drive
+        # Link format: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+        file_id = "PASTE_YOUR_FILE_ID_HERE"
+        url = f"https://drive.google.com/uc?id={file_id}"
+        gdown.download(url, model_path, quiet=False)
+        st.success("Model downloaded successfully.")
+
+ensure_all_models_exists()
+
+# ============================
+# 2. LOAD ARTIFACTS
 # ============================
 
 @st.cache_resource
@@ -19,7 +40,7 @@ def load_artifacts():
 model_dict, feature_list, fraud_rate_global = load_artifacts()
 
 # ============================
-# MODEL SELECTION ENGINE
+# 3. MODEL SELECTION ENGINE
 # ============================
 
 def recommend_model(
@@ -103,7 +124,7 @@ def recommend_model(
     }
 
 # ============================
-# BASIC STYLING
+# 4. STYLING / PAGE CONFIG
 # ============================
 
 st.set_page_config(
@@ -138,10 +159,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ============================
-# HEADER
-# ============================
-
+# Header
 st.markdown(
     """
     <div class="card">
@@ -155,7 +173,7 @@ st.markdown(
 )
 
 # ============================
-# SIDEBAR – MODEL SELECTION CONTEXT
+# 5. SIDEBAR – MODEL SELECTION CONTEXT
 # ============================
 
 st.sidebar.header("⚙️ Model Selection – Business & Fraud Context")
@@ -211,7 +229,7 @@ st.sidebar.success(recommended_model_name)
 st.sidebar.caption("Chosen using the AI Model Selection Engine based on fraud type + business constraints.")
 
 # ============================
-# MAIN LAYOUT
+# 6. MAIN LAYOUT: INPUT + OUTPUT
 # ============================
 
 col_left, col_right = st.columns([1.1, 0.9])
@@ -335,7 +353,7 @@ with col_left:
             value="Windows"
         )
 
-    # TransactionDT not shown to user – use dummy value if needed
+    # TransactionDT not user facing – use dummy value if needed
     if "TransactionDT" in feature_list:
         input_data["TransactionDT"] = 24 * 3600  # 1-day equivalent
 
@@ -359,7 +377,7 @@ with col_right:
         # Build DataFrame from input
         tx_df = pd.DataFrame([input_data])
 
-        # For engineered features used in training, we can approximate or set defaults
+        # Engineered features approximations if needed
         if "TransactionAmt_log" in feature_list and "TransactionAmt" in tx_df.columns:
             tx_df["TransactionAmt_log"] = np.log1p(tx_df["TransactionAmt"])
 
@@ -372,9 +390,9 @@ with col_right:
         if "TransactionDay" in feature_list and "TransactionDT_hours" in tx_df.columns:
             tx_df["TransactionDay"] = (tx_df["TransactionDT_hours"] // 24 % 7).astype(int)
 
-        # Simple defaults for frequency-encoded engineered features
+        # Simple defaults for frequency-like engineered features
         if "card1_count" in feature_list and "card1" in tx_df.columns:
-            tx_df["card1_count"] = 100  # approx average
+            tx_df["card1_count"] = 100
 
         if "P_emaildomain_freq" in feature_list and "P_emaildomain" in tx_df.columns:
             tx_df["P_emaildomain_freq"] = 100
@@ -419,7 +437,7 @@ with col_right:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ============================
-# FOOTER
+# 7. FOOTER
 # ============================
 
 st.markdown(
